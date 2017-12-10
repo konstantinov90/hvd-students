@@ -1,0 +1,7 @@
+aiofiles==0.3.2
+aiohttp==2.3.6
+aiohttp-auth==0.1.1
+aiohttp-jinja2==0.14.0
+motor==1.1
+xlsxwriter==1.0.2
+watchdog==0.8.3

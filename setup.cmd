@@ -1,0 +1,1 @@
+pip install -Ir requirements.txt
