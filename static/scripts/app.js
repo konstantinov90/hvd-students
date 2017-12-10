@@ -26,7 +26,7 @@ function sign(el, periodNum, url) {
     const period = tr.parentElement.parentElement.parentElement;
     const day = period.parentElement.parentElement;
     const dayStr = day.querySelector('.day-header').querySelector('h2').innerHTML;
-    const periodStr = period.querySelector('h5').innerHTML;
+    const periodStr = period.querySelector('h4').innerHTML;
 
     form.selectedInp.value = `${dayStr} ${periodStr}`;
     form.dayIdInp.value = day.id;

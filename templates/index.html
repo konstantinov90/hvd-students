@@ -9,8 +9,8 @@
 </head>
 <body>
 
-    <h2> Добрый день, {{ user['name'] }}</h2>
-    <h3> Группа: {{ user['group'] }}</h3>
+    <h2>Здравствуйте, {{ user['name'] }}!</h2>
+    <h3>Выберите время для записи:</h3>
     
     <form action="/rest/register" method='POST' onsubmit='return processForm()'>
         <div>
@@ -42,17 +42,18 @@
         {% for day in days %}
         <div class="day" id="{{ day['_id'] }}">
             <div class="day-header">
-                <h2>{{ day['day'].strftime('%Y-%m-%d') }}</h2>
+                <h2>{{ day['day_str'] }}</h2>
             </div>
             <div class="periods">
-                {% for period_num, period in day['periods'].items() %}
-                    {% set label = '1-2 пары 09:20 - 12:45' if period_num == 'first' else '3-4 пары 13:45 - 17:10' %}
+                {% for period_num in 'first', 'second' %}
+                    {% set period = day['periods'].get(period_num) %}
+                    {% set label = '09:20 – 12:45' if period_num == 'first' else '13:45 – 17:10' %}
                     <div class="period {{ period_num }}">
-                        <h5>{{ label }}</h5>
-                        <p>Группы: {{ ', '.join(period['groups']) }}</p>
+                        <h4>{{ label }}</h4>
+                        {% if period %}
                         <table border="1">
                             <tr>
-                                <th>Л/Р</th>
+                                <th>№ ЛР</th>
                                 <th>Свободных мест</th>
                             </tr>
 
@@ -85,11 +86,11 @@
                                     <td>{{ lab_id }}</td>
                                     {% if class_name == 'selectable' %}
                                         <td>{{ lab['quota'] - lab['students_registered'] }}</td>
-                                        <td class='btn' onclick='signUp(this, "{{ period_num }}")'>записаться</td>
+                                        <td class='btn sign-up-btn' onclick='signUp(this, "{{ period_num }}")'>записаться</td>
                                     {% elif class_name == 'not-selectable' %}
                                         <td>{{ lab['quota'] - lab['students_registered'] }}</td>
                                     {% elif class_name == 'run-out' %}
-                                        <td>вы записаны на {{ lab_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>вы записаны на {{ lab_date.strftime('%d ') + months[lab_date.month-1] + lab_date.strftime(' %Y') }}</td>
                                     {% else %}
                                         <td>вы записаны</td>
                                         <td class='btn' onclick='signOut(this, "{{ period_num }}")'>удалить запись</td>
@@ -97,6 +98,7 @@
                                 </tr>
                             {% endfor %}
                         </table>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>

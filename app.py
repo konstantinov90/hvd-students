@@ -6,6 +6,8 @@ from aiohttp import web
 import aiohttp_jinja2
 from aiohttp_auth import auth
 
+import months
+
 async def process_response(self, request, response):
     """Called to perform any processing of the response required.
 
@@ -70,10 +72,13 @@ async def index(request):
             if user['group'] not in period['groups']:
                 del day['periods'][key]
     days = [day for day in days if day['periods']]
+    for day in days:
+        day['day_str'] = f'{day["day"]:%d} {months.MONTHS[day["day"].month-1]} {day["day"]:%Y} г.'
 
     return {
         "days": days,
         "user": user,
+        "months": months.months,
     }
 
 async def static(request):
