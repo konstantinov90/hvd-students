@@ -21,3 +21,15 @@ input {
     width: auto;
     height: 30px;
 }
+.footer {
+    position: absolute;
+    bottom: 0px;
+    margin-bottom: 0px;
+    /* border: black solid 2px; */
+    float: right;
+    /* line-height: 10px; */
+}
+.footer > div {
+    margin-top: 10px;
+    text-align: right;
+}

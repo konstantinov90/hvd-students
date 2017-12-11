@@ -68,7 +68,21 @@ function signUp(el, periodNum) {
 }
 
 function signOut(el, periodNum) {
-    sign(el, periodNum, '/rest/unregister');
+    if (confirm("Вы уверены?")) {
+        sign(el, periodNum, '/rest/unregister');
+    }
+}
+
+function logOff() {
+    const cookies = document.cookie.split(";");
+
+    for (cookie of cookies) {
+        if (cookie.startsWith('AUTH_TKT')) {
+            const newCookie = 'AUTH_TKT=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            document.cookie = document.cookie.replace(cookie, newCookie);
+        }
+        window.location = '/';
+    }
 }
 
 function timeout(ms, promise) {

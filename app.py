@@ -66,7 +66,7 @@ async def index(request):
         return web.HTTPFound('/login')
     user = (await request.app['db'].users.find({'_id': int(user_id)}).to_list(None))[0]
 
-    days = await request.app['db'].timetable.find().to_list(None)
+    days = await request.app['db'].timetable.find().sort([('day', 1)]).to_list(None)
     for day in days:
         for key, period in list(day['periods'].items()):
             if user['group'] not in period['groups']:
@@ -78,7 +78,7 @@ async def index(request):
     return {
         "days": days,
         "user": user,
-        "months": months.months,
+        "months": months.MONTHS,
     }
 
 async def static(request):
@@ -134,10 +134,24 @@ async def report(request):
     return resp
 
 
+@web.middleware
+async def error_middleware(request, handler):
+    try:
+        return await handler(request)
+    except Exception as e:
+        return web.HTTPInternalServerError(text="""
+Произошла непредвиденная ошибка на сервере, с этим уже разбираются.
+Пока можете написать на hvdstudents@yandex.ru
+""")
+
+
 def make_app(loop):
     app = web.Application(
         loop=loop,
-        middlewares=(auth_middleware,),
+        middlewares=[
+            auth_middleware,
+            error_middleware,
+        ]
     )
     app.router.add_get('/', index)
     # app.router.add_get('/static/{filename}', static)
