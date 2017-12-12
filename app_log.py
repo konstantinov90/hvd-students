@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import partial
 import logging
 import logging.handlers
 import os

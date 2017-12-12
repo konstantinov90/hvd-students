@@ -1,5 +1,6 @@
 import os
 import asyncio
+import datetime
 import hashlib
 import traceback
 
@@ -57,17 +58,16 @@ auth_middleware = auth.auth_middleware(auth_policy)
 
 @aiohttp_jinja2.template('login.html')
 async def login(request):
-    if (await auth.get_auth(request)):
+    if (request['user']):
         return web.HTTPFound('/')
     return {}
 
 
 @aiohttp_jinja2.template('index.html')
 async def index(request):
-    user_id = await auth.get_auth(request)
-    if not user_id:
+    user = request['user']
+    if not user:
         return web.HTTPFound('/login')
-    user = (await request.app['db'].users.find({'_id': int(user_id)}).to_list(None))[0]
 
     days = await request.app['db'].timetable.find().sort([('day', 1)]).to_list(None)
     for day in days:
@@ -91,7 +91,10 @@ async def static(request):
 
 async def heartbeat(request):
     while request.query['hash'] == request.app['container']['hash']:
-        await asyncio.sleep(0.1)
+        try:
+            await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            pass
     return web.Response(text=request.app['container']['hash'], headers=MultiDict({
         'Cache-Control': 'No-Cache'
     }))
@@ -141,10 +144,22 @@ async def report(request):
 
 @web.middleware
 async def error_middleware(request, handler):
+    db = request.app['db']
     try:
         return await handler(request)
+    except web.HTTPClientError as resp:
+        return resp
     except Exception as e:
-        log.error(''.join(traceback.format_tb(e.__traceback__)))
+        tb = ''.join(traceback.format_tb(e.__traceback__))
+        await db.logs.insert({
+            'level': 'error',
+            'client_ip': request.remote,
+            'url': str(request.rel_url),
+            'user_agent': request.headers['User-Agent'],
+            'timestamp': datetime.datetime.now(),
+            'traceback': tb,
+        })
+        log.error(f'{e.__class__} {tb}')
         # return web.HTTPInternalServerError(text=''.join(traceback.format_tb(e.__traceback__)))
         return web.HTTPInternalServerError(text="""
 Произошла непредвиденная ошибка на сервере, с этим уже разбираются.
@@ -153,14 +168,51 @@ async def error_middleware(request, handler):
 
 @web.middleware
 async def access_logger(request, handler):
-    msg = f'''
-client ip = {request.remote}
-url = {request.rel_url}
-user agent = {request.headers['User-Agent']}
-    '''
-    log.info(msg)
+    user = request['user']
+    db = request.app['db']
+    if user:
+        await db.logs.insert({
+            'level': 'info',
+            'user': user['_id'],
+            'client_ip': request.remote,
+            'url': str(request.rel_url),
+            'user_agent': request.headers['User-Agent'],
+            'timestamp': datetime.datetime.now(),
+        })
+        msg = f'''
+            user = {user['_id']}
+            client ip = {request.remote}
+            url = {request.rel_url}
+            user agent = {request.headers['User-Agent']}'''
+        log.info(msg)
     
-    
+    return await handler(request)
+
+@web.middleware
+async def response_logger(request, handler):
+    resp = await handler(request)
+    if isinstance(resp, dict):
+        db = request.app['db']
+        await db.log.insert(resp)
+
+        msg = f'''
+            user = {resp['user']}
+            event = {resp['event']}
+            day = {resp['entity']['day']}
+            period = {resp['entity']['period']}
+            lab = {resp['entity']['lab']}'''
+        log.info(msg)
+
+        resp = web.Response(text='ok')
+    return resp
+
+@web.middleware
+async def user_data_middleware(request, handler):
+    db = request.app['db']
+    user_id = await auth.get_auth(request)
+    if user_id:
+        user = await db.users.find_one({'_id': int(user_id)})
+    request['user'] = user if user_id else None
     
     return await handler(request)
 
@@ -170,7 +222,9 @@ def make_app(loop):
         loop=loop,
         middlewares=[
             auth_middleware,
+            user_data_middleware,
             access_logger,
+            response_logger,
             error_middleware,
         ]
     )

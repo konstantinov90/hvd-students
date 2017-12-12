@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 
 from aiohttp import web
 from bson import json_util, ObjectId
@@ -18,7 +19,7 @@ async def register(request):
     user_id = await auth.get_auth(request)
     if not user_id:
         return web.HTTPForbidden(text='войдите в систему')
-    user = await db.users.find_one({'_id': int(user_id)})
+    user = request['user']
     if not user:
         return web.HTTPNotFound(text='вы отсутствуете в системе')
     if user['group'] != data['group']:
@@ -51,20 +52,40 @@ async def register(request):
         }}),
         db.users.update_one({'_id': int(user_id)}, {'$set': {
             f'labs.{data["lab-id"]}': {'day': day['day'], 'period': data['period']}
-        }})
+        }}),
+        db.logs.insert({
+            'user': int(user_id),
+            'level': 'info',
+            'event': 'registered',
+            'entity': {
+                'lab': data["lab-id"],
+                'day': day['day'],
+                'period': data['period'],
+            },
+            'timestamp': datetime.datetime.now(),
+        })
     )
 
-    return web.Response(text="ok")
+    return {
+        'user': int(user_id),
+        'level': 'info',
+        'event': 'registered',
+        'entity': {
+            'lab': data["lab-id"],
+            'day': day['day'],
+            'period': data['period'],
+        },
+        'timestamp': datetime.datetime.now(),
+    }
 
 async def unregister(request):
     data = await request.post()
     db = request.app['db']
-    print(data.keys())
 
     user_id = await auth.get_auth(request)
     if not user_id:
         return web.HTTPForbidden(text='войдите в систему')
-    user = await db.users.find_one({'_id': int(user_id)})
+    user = request['user']
     if not user:
         return web.HTTPNotFound(text='вы отсутствуете в системе')
     if user['group'] != data['group']:
@@ -90,10 +111,31 @@ async def unregister(request):
         }}),
         db.users.update_one({'_id': int(user_id)}, {'$unset': {
             f'labs.{data["lab-id"]}': 1
-        }})
+        }}),
+        db.logs.insert({
+            'user': int(user_id),
+            'level': 'info',
+            'event': 'unregistered',
+            'entity': {
+                'lab': data["lab-id"],
+                'day': day['day'],
+                'period': data['period'],
+            },
+            'timestamp': datetime.datetime.now(),
+        }),
     )
 
-    return web.Response(text="ok")
+    return {
+        'user': int(user_id),
+        'level': 'info',
+        'event': 'unregistered',
+        'entity': {
+            'lab': data["lab-id"],
+            'day': day['day'],
+            'period': data['period'],
+        },
+        'timestamp': datetime.datetime.now(),
+    }
 
 async def login(request):
     data = await request.post()

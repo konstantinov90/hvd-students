@@ -67,7 +67,7 @@ function sign(el, periodNum, url) {
         }, 5000);
     })
     .catch(function(e) {
-        console.log(e)
+        console.error(e)
     });
 }
 
@@ -113,7 +113,6 @@ fetch('/heartbeat?hash=').then(function (d) {return d.text()}).then(function (t)
 
 
 function heartbeat() {
-    console.log(hash);
     var timeStampInMs = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
     Promise.race([
         fetch('/heartbeat?hash=' + hash + "&_ts=" + timeStampInMs),
@@ -121,7 +120,6 @@ function heartbeat() {
             setTimeout(function() {return reject(new Error('request timeout'))}, 10000)
         })
     ]).then(function (d) {return d.text()}).then(function (t) {
-        console.log(t);
         window.location = '/';
     }).catch(function (e) {
         setTimeout(heartbeat, 1000)
