@@ -1,12 +1,15 @@
 import os
 import asyncio
 import hashlib
+import traceback
 
 from aiohttp import web
 import aiohttp_jinja2
 from aiohttp_auth import auth
 
 import months
+import app_log
+log = app_log.get_logger()
 
 async def process_response(self, request, response):
     """Called to perform any processing of the response required.
@@ -89,7 +92,9 @@ async def static(request):
 async def heartbeat(request):
     while request.query['hash'] == request.app['container']['hash']:
         await asyncio.sleep(0.1)
-    return web.Response(text=request.app['container']['hash'])
+    return web.Response(text=request.app['container']['hash'], headers=MultiDict({
+        'Cache-Control': 'No-Cache'
+    }))
 
 async def report(request):
     db = request.app['db']
@@ -139,10 +144,25 @@ async def error_middleware(request, handler):
     try:
         return await handler(request)
     except Exception as e:
+        log.error(''.join(traceback.format_tb(e.__traceback__)))
+        # return web.HTTPInternalServerError(text=''.join(traceback.format_tb(e.__traceback__)))
         return web.HTTPInternalServerError(text="""
 Произошла непредвиденная ошибка на сервере, с этим уже разбираются.
 Пока можете написать на hvdstudents@yandex.ru
 """)
+
+@web.middleware
+async def access_logger(request, handler):
+    msg = f'''
+client ip = {request.remote}
+url = {request.rel_url}
+user agent = {request.headers['User-Agent']}
+    '''
+    log.info(msg)
+    
+    
+    
+    return await handler(request)
 
 
 def make_app(loop):
@@ -150,12 +170,13 @@ def make_app(loop):
         loop=loop,
         middlewares=[
             auth_middleware,
+            access_logger,
             error_middleware,
         ]
     )
     app.router.add_get('/', index)
     # app.router.add_get('/static/{filename}', static)
-    app.router.add_static('/static', 'static', show_index=True)
+    app.router.add_static('/static', 'static', show_index=False)
 
     app.router.add_get('/rest/get_timetable', rest.timetable)
     app.router.add_post('/rest/register', rest.register)
@@ -172,15 +193,13 @@ def make_app(loop):
     )
 
     db = motor.AsyncIOMotorClient(S.mongo['url'])[S.mongo['db']]
-    app['db'] = db
-    app['running'] = True
-    app['container'] = {'hash': 'asd'}
+    app.update(db=db, running=True, container={'hash': ''}, hash_analyzer=None)
 
     async def db_auth(app):
         await app['db'].authenticate(S.mongo['username'], S.mongo['pwd'])
 
     async def run_db_hash_analyzer(app):
-        asyncio.ensure_future(db_hash_analyzer(app))
+        app['hash_analyzer'] = asyncio.ensure_future(db_hash_analyzer(app))
 
     async def db_hash_analyzer(app):
         while app['running']:
@@ -190,9 +209,14 @@ def make_app(loop):
             finally:
                 await asyncio.sleep(1)
 
+    async def shutdown(app):
+        app['running'] = False
+        await app['hash_analyzer']
+
     app.on_startup.append(db_auth)
     app.on_startup.append(run_db_hash_analyzer)
+    app.on_shutdown.append(shutdown)
 
     return app
 
-web.run_app(make_app(asyncio.get_event_loop()), port=9000)
+web.run_app(make_app(asyncio.get_event_loop()), port=S.port)

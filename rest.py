@@ -59,6 +59,7 @@ async def register(request):
 async def unregister(request):
     data = await request.post()
     db = request.app['db']
+    print(data.keys())
 
     user_id = await auth.get_auth(request)
     if not user_id:

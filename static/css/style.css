@@ -61,12 +61,12 @@ td, th {
 }
 .btn {
     cursor: pointer;
-    border-radius: 50%;
+    border-radius: 10%;
     border: grey 2px solid;
     box-shadow: 5px 3px 13px 0px rgba(50, 50, 50, 0.64);
 }
 .sign-up-btn {
-    background-color: rgb(91, 206, 91);
+    background-color: rgb(113, 240, 113);
 }
 .btn:hover {
     box-shadow: inset 5px 3px 13px 0px rgba(50, 50, 50, 0.64);
