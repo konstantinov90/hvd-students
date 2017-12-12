@@ -1,6 +1,7 @@
 import datetime
 import xlrd
 import pymongo
+import settings as S
 
 def minimalist_xldate_as_datetime(xldate, datemode):
     # datemode: 0 for 1900-based, 1 for 1904-based
@@ -9,11 +10,11 @@ def minimalist_xldate_as_datetime(xldate, datemode):
         + datetime.timedelta(days=xldate + 1462 * datemode)
         )
 
-FILENAME = 'f:\PYTHON\hvd-students\список студентов.xlsx'
+FILENAME = 'c:\PYTHON\hvd-students\список студентов.xlsx'
 
 def run():
-    db = pymongo.MongoClient('ds044787.mlab.com:44787').students
-    db.authenticate('app','studentsapp')
+    db = pymongo.MongoClient(S.mongo['url'])[S.mongo['db']]
+    db.authenticate(S.mongo['username'], S.mongo['pwd'])
     db.users.drop()
 
     wb = xlrd.open_workbook(FILENAME)
