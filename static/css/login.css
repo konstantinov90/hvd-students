@@ -33,3 +33,6 @@ input {
     margin-top: 10px;
     text-align: right;
 }
+.msg-box {
+    color: rgb(250, 81, 81);
+}

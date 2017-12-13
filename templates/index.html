@@ -44,7 +44,7 @@
         {% for day in days %}
         <div class="day" id="{{ day['_id'] }}">
             <div class="day-header">
-                <h2>{{ day['day_str'] }}</h2>
+                <h2>{{ day['day'].strftime('%d ') + months[day['day'].month-1] + day['day'].strftime(' %Y') }}</h2>
             </div>
             <div class="periods">
                 {% for period_num in 'first', 'second' %}
@@ -89,7 +89,10 @@
                                     {% endif %}
                                 {% endif %}
 
-                                <tr class='{{ class_name }}' critical-time='{{ user_lab["critical_time"].strftime("%Y-%m-%dT%H:%M:%S") if user_lab else "" }}'>
+                                <tr class='{{ class_name }}'
+                                    critical-time='{{ day["critical_time"].strftime("%Y-%m-%dT%H:%M:%S") }}'
+                                    block-until='{{ day["block_until"].strftime("%d ") + months[day["block_until"].month-1] }}'
+                                >
                                     <td>{{ lab_id }}</td>
                                     {% if class_name == 'selectable' %}
                                         <td>{{ lab['quota'] - lab['students_registered'] }}</td>
@@ -108,6 +111,8 @@
                                 </tr>
                             {% endfor %}
                         </table>
+                        {% else %}
+                            <div class='fallback'>отработок не запланировано</div>
                         {% endif %}
                     </div>
                 {% endfor %}

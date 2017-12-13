@@ -10,7 +10,7 @@ def minimalist_xldate_as_datetime(xldate, datemode):
         + datetime.timedelta(days=xldate + 1462 * datemode)
         )
 
-FILENAME = 'c:\PYTHON\hvd-students\список студентов.xlsx'
+FILENAME = 'f:\PYTHON\hvd-students\список студентов.xlsx'
 
 def run():
     db = pymongo.MongoClient(S.mongo['url'])[S.mongo['db']]
@@ -25,6 +25,7 @@ def run():
         group = ws.cell(i, 2).value.strip()
         print(user_id, name, group)
         db.users.insert({'_id': user_id, 'labs': {}, 'group': group, 'name': name, 'blocks': {}})
+    db.users.insert({'_id': S.admin_id, 'labs': {}, 'group': 'super', 'name': 'super', 'blocks': {}})
 
 
 if __name__ == '__main__':

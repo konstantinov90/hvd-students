@@ -12,6 +12,9 @@ import months
 import app_log
 log = app_log.get_logger()
 
+CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=13)
+BLOCK_UNTIL_TIMEDELTA = datetime.timedelta(days=2)
+
 async def process_response(self, request, response):
     """Called to perform any processing of the response required.
 
@@ -56,11 +59,25 @@ import settings as S
 auth_policy = auth.CookieTktAuthentication(os.urandom(32), 6000000, include_ip=True)
 auth_middleware = auth.auth_middleware(auth_policy)
 
+
+@aiohttp_jinja2.template('sign-up.html')
+async def ask_for_password(request):
+    msg = ''
+    if request.query.get('msg') == 'unequal-pwds':
+        msg = 'пароль подтвержден неправильно!'
+    return {
+        'id': request.query.get('id', ''),
+        'msg': msg,
+    }
+
 @aiohttp_jinja2.template('login.html')
 async def login(request):
-    if (request['user']):
+    if request['user']:
         return web.HTTPFound('/')
-    return {}
+    msg = ''
+    if request.query.get('msg') == 'wrong-pwd':
+        msg = 'Введен неправильный пароль'
+    return {'msg': msg}
 
 
 @aiohttp_jinja2.template('index.html')
@@ -68,11 +85,13 @@ async def index(request):
     user = request['user']
     if not user:
         return web.HTTPFound('/login')
+    if 'pwd' not in user:
+        return web.HTTPFound('/sign-up')
 
     days = await request.app['db'].timetable.find().sort([('day', 1)]).to_list(None)
     for day in days:
         for key, period in list(day['periods'].items()):
-            if user['group'] not in period['groups']:
+            if user['group'] not in period['groups'] and user['name'] != 'super':
                 del day['periods'][key]
     days = [day for day in days if day['periods']]
     for day in days:
@@ -234,11 +253,12 @@ def make_app(loop):
     # app.router.add_get('/static/{filename}', static)
     app.router.add_static('/static', 'static', show_index=False)
 
-    app.router.add_get('/rest/get_timetable', rest.timetable)
+    app.router.add_post('/rest/send_password', rest.sign_up)
     app.router.add_post('/rest/register', rest.register)
     app.router.add_post('/rest/unregister', rest.unregister)
     app.router.add_post('/rest/login', rest.login)
     app.router.add_get('/login', login)
+    app.router.add_get('/sign-up', ask_for_password)
     app.router.add_get('/heartbeat', heartbeat)
     app.router.add_get('/get_report', report)
 
@@ -265,12 +285,24 @@ def make_app(loop):
             finally:
                 await asyncio.sleep(1)
 
+    async def set_timetable_critical_dates(app):
+        db = app['db']
+        days = await db.timetable.find().to_list(None)
+        for day in days:
+            await db.timetable.update_one({'_id': day['_id']}, {
+                '$set': {
+                    'critical_time': day['day'] + CRITICAL_TIMEDELTA,
+                    'block_until': day['day'] + BLOCK_UNTIL_TIMEDELTA,
+                }   
+            })
+
     async def shutdown(app):
         app['running'] = False
         await app['hash_analyzer']
 
     app.on_startup.append(db_auth)
     app.on_startup.append(run_db_hash_analyzer)
+    app.on_startup.append(set_timetable_critical_dates)
     app.on_shutdown.append(shutdown)
 
     return app

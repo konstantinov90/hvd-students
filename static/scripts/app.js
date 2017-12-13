@@ -76,8 +76,9 @@ function signUp(el, periodNum) {
 
 function signOut(el, periodNum) {
     var criticalTime = new Date(el.parentElement.attributes['critical-time'].value);
+    var blockUntilTime = el.parentElement.attributes['block-until'].value;
     var now = new Date();
-    var msg = "Вы уверены?" + (now > criticalTime? " После отмены записи у вас будет заблокирована возможность записи на эту лабораторную работу": "");
+    var msg = "Вы уверены?" + (now > criticalTime? "\nCледующая возможность записаться на отработку данной ЛР будет предоставлена Вам " + blockUntilTime + "!": "");
     if (confirm(msg)) {
         sign(el, periodNum, '/rest/unregister');
     }

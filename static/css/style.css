@@ -83,6 +83,9 @@ td, th {
 .blocked {
     background-color: rgba(165, 165, 165, 0.911);
 }
+.fallback {
+    text-align: center;
+}
 
 /* The Modal (background) */
 .modal {

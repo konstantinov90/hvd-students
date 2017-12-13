@@ -1,18 +1,56 @@
 import asyncio
 import datetime
+import os
+import hashlib
 
 from aiohttp import web
 from bson import json_util, ObjectId
 import json
 from aiohttp_auth import auth
 
-CRITICAL_TIMEDELTA = datetime.timedelta(days=-10, hours=13)
-
 def dmps(obj):
     return json.dumps(obj, default=json_util.default)
 
-async def timetable(request):
-    return web.json_response(await request.app['db'].timetable.find().to_list(None), dumps=dmps)
+async def sign_up(request):
+    if request['user']:
+        return web.HTTPFound('/')
+    
+    db = request.app['db']
+    data = await request.post()
+    if data['password'] != data['password2']:
+        return web.HTTPFound(f'/sign-up?id={data["id"]}&msg=unequal-pwds')
+    _id = int(data['id'])
+    user = await db.users.find_one({'_id': _id})
+    if not user:
+        return web.HTTPForbidden(text="ваш студенческий билет не зарегистрирован в системе")
+    if 'pwd' in user:
+        return web.HTTPFound('/')
+    pwd = data['password']
+    salt = os.urandom(16)
+    enc_pwd = hashlib.md5(salt + pwd.encode()).hexdigest()
+    await db.users.update_one({'_id': _id}, {
+        '$set': {'pwd': enc_pwd, 'salt': salt}
+    })
+    return await login(request, pwd)
+
+async def login(request, _pwd=None):
+    data = await request.post()
+    db = request.app['db']
+    if _pwd:
+        pwd = _pwd
+    else:
+        pwd = data['password']
+    _id = int(data["id"])
+    user = await db.users.find_one({'_id': _id})
+    if not user:
+        return web.HTTPForbidden(text="ваш студенческий билет не зарегистрирован в системе")
+    if 'pwd' not in user:
+        return web.HTTPFound(f'/sign-up?id={_id}')
+    if hashlib.md5(user['salt'] + pwd.encode()).hexdigest() == user['pwd']:
+        await auth.remember(request, data['id'])
+        return web.HTTPFound('/')
+    return web.HTTPFound('/login?msg=wrong-pwd')
+
 
 async def register(request):
     db = request.app['db']
@@ -33,13 +71,13 @@ async def register(request):
         db.timetable.update_one({'_id': ObjectId(data['day-id'])}, {'$inc': {
             f'periods.{data["period"]}.labs.{idx}.students_registered': 1
         }}),
-        db.users.update_one({'_id': int(user_id)}, {'$set': {
-            f'labs.{data["lab-id"]}': {'day': day['day'], 'period': data['period'], 'critical_time': day['day'] + CRITICAL_TIMEDELTA}
+        db.users.update_one({'_id': user_id}, {'$set': {
+            f'labs.{data["lab-id"]}': {'day': day['day'], 'period': data['period']}
         }}),
     )
 
     return {
-        'user': int(user_id),
+        'user': user_id,
         'level': 'info',
         'event': 'registered',
         'entity': {
@@ -78,7 +116,7 @@ async def prepare_event(request):
         [(idx, lab,)] = [(i, lab) for i, lab in enumerate(period['labs']) if lab['_id'] == data['lab-id']]
     except Exception:
         raise web.HTTPNotFound(text=f'в выбранном дне не запланированы отработки {data["lab-id"]} л/р')
-    return data, user_id, user, day, period, idx, lab
+    return data, int(user_id), user, day, period, idx, lab
 
 
 async def unregister(request):
@@ -96,20 +134,20 @@ async def unregister(request):
     user_cmd = {'$unset': {
         f'labs.{lab_id}': 1
     }}
-    if datetime.datetime.now() > user['labs'][lab_id]['critical_time']:
+    if datetime.datetime.now() > day['critical_time']:
         user_cmd['$set'] = {
-            f'blocks.{lab_id}': datetime.datetime(2017, 12, 23)
+            f'blocks.{lab_id}': day['block_until']
         }
 
     await asyncio.gather(
         db.timetable.update_one({'_id': ObjectId(data['day-id'])}, {'$inc': {
             f'periods.{data["period"]}.labs.{idx}.students_registered': -1
         }}),
-        db.users.update_one({'_id': int(user_id)}, user_cmd),
+        db.users.update_one({'_id': user_id}, user_cmd),
     )
 
     return {
-        'user': int(user_id),
+        'user': user_id,
         'level': 'info',
         'event': 'unregistered',
         'entity': {
@@ -119,15 +157,3 @@ async def unregister(request):
         },
         'timestamp': datetime.datetime.now(),
     }
-
-async def login(request):
-    data = await request.post()
-    db = request.app['db']
-    try:
-        _id = int(data["id"])
-        if await db.users.find({'_id': _id}).to_list(None):
-            await auth.remember(request, data['id'])
-            return web.HTTPFound('/')
-    except:
-        pass
-    return web.Response(text="вы не зарегистрированы в системе")
