@@ -14,7 +14,7 @@
     <div class="log-off" onclick="logOff()">выйти</div>
     <h3>Выберите время для записи:</h3>
     
-    <form action="/rest/register" method='POST' onsubmit='return processForm()'>
+    <form action="/rest/register" method='POST'>
         <div>
             <input type="text" name="lab-id" id="lab-id" placeholder="номер л/р">
         </div>
@@ -71,31 +71,39 @@
                                 {% set free_space = lab['quota'] - lab['students_registered'] %}
                                 
                                 {% set user_lab = user['labs'].get(lab_id) %}
-                                {% if user_lab %}
-                                    {% if user_lab['day'] == day['day'] and user_lab['period'] == period_num %}
-                                        {% set class_name = 'selected' %}
-                                    {% else %}
-                                        {% set class_name = 'run-out' %}
-                                        {% set lab_date = user_lab['day'] %}
-                                    {% endif %}
+                                {% if lab_id in user['blocks'] and user['blocks'][lab_id] > day['day'] %}
+                                    {% set class_name = 'blocked' %}
+                                {% elif lab_id in user['blocks'] and user['blocks'][lab_id] <= day['day'] and not user_period.occupied and free_space > 0 %}
+                                    {% set class_name = 'selectable' %}
                                 {% elif user_period.occupied or free_space <= 0 %}
                                     {% set class_name = 'not-selectable' %}
                                 {% else %}
                                     {% set class_name = 'selectable' %}
                                 {% endif %}
+                                {% if user_lab %}
+                                    {% if user_lab['day'] == day['day'] and user_lab['period'] == period_num %}
+                                        {% set class_name = 'selected' %}
+                                    {% elif (lab_id in user['blocks'] and user['blocks'][lab_id] <= day['day']) or not (user_lab['day'] == day['day'] and user_lab['period'] == period_num) %}
+                                        {% set class_name = 'run-out' %}
+                                        {% set lab_date = user_lab['day'] %}
+                                    {% endif %}
+                                {% endif %}
 
-                                <tr class='{{ class_name }}'>
+                                <tr class='{{ class_name }}' critical-time='{{ user_lab["critical_time"].strftime("%Y-%m-%dT%H:%M:%S") if user_lab else "" }}'>
                                     <td>{{ lab_id }}</td>
                                     {% if class_name == 'selectable' %}
                                         <td>{{ lab['quota'] - lab['students_registered'] }}</td>
                                         <td class='btn sign-up-btn' onclick='signUp(this, "{{ period_num }}")'>записаться</td>
-                                    {% elif class_name == 'not-selectable' %}
-                                        <td>{{ lab['quota'] - lab['students_registered'] }}</td>
-                                    {% elif class_name == 'run-out' %}
-                                        <td>вы записаны на {{ lab_date.strftime('%d ') + months[lab_date.month-1] }}</td>
-                                    {% else %}
+                                    {% elif class_name == 'selected' %}
                                         <td>вы записаны</td>
                                         <td class='btn' onclick='signOut(this, "{{ period_num }}")'>удалить запись</td>
+                                    {% elif class_name == 'run-out' %}
+                                        <td>вы записаны на {{ lab_date.strftime('%d ') + months[lab_date.month-1] }}</td>
+                                    {% elif class_name == 'blocked' %}
+                                        <td>запись закрыта до</td>
+                                        <td>{{ user['blocks'][lab_id].strftime('%d ') + months[user['blocks'][lab_id].month-1] }}</td>
+                                    {% else %}
+                                        <td>{{ lab['quota'] - lab['students_registered'] }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}

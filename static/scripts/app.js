@@ -5,7 +5,7 @@ var form = {
     groupInp: document.getElementById('group'),
     studentIdInp: document.getElementById('student-id'),
     labIdInp: document.getElementById('lab-id'),
-}
+};
 var modal = document.getElementById('myModal');
 
 function removeClassGlobally(className) {
@@ -15,7 +15,7 @@ function removeClassGlobally(className) {
 }
 
 function inactivate() {
-    removeClassGlobally('active')
+    removeClassGlobally('active');
     selectedInp.value = '';
 }
 
@@ -33,7 +33,7 @@ function sign(el, periodNum, url) {
     form.periodInp.value = periodNum;
     form.labIdInp.value = tr.querySelector('td').innerHTML;
 
-    tr.classList.add('active')
+    tr.classList.add('active');
 
     var formData = new FormData();
 
@@ -55,8 +55,7 @@ function sign(el, periodNum, url) {
         if (d.status == 200) {
             window.location = '/';
             return d.text();
-        }
-        else {
+        } else {
             return d.text();
         }
     }).then(function(d) {
@@ -67,7 +66,7 @@ function sign(el, periodNum, url) {
         }, 5000);
     })
     .catch(function(e) {
-        console.error(e)
+        console.error(e);
     });
 }
 
@@ -76,7 +75,10 @@ function signUp(el, periodNum) {
 }
 
 function signOut(el, periodNum) {
-    if (confirm("Вы уверены?")) {
+    var criticalTime = new Date(el.parentElement.attributes['critical-time'].value);
+    var now = new Date();
+    var msg = "Вы уверены?" + (now > criticalTime? " После отмены записи у вас будет заблокирована возможность записи на эту лабораторную работу": "");
+    if (confirm(msg)) {
         sign(el, periodNum, '/rest/unregister');
     }
 }
@@ -84,7 +86,7 @@ function signOut(el, periodNum) {
 function logOff() {
     var cookies = document.cookie.split(";");
 
-    for (var i = 0; i < cookies.length; i ++) {
+    for (var i = 0; i < cookies.length; i++) {
         var cookie = cookies[i];
         if (cookie.split('=')[0] === 'AUTH_TKT') {
             var newCookie = 'AUTH_TKT=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -97,10 +99,10 @@ function logOff() {
 function timeout(ms, promise) {
     return new Promise(function(resolve, reject) {
       setTimeout(function() {
-        reject(new Error("timeout"))
-      }, ms)
-      promise.then(resolve, reject)
-    })
+        reject(new Error("timeout"));
+      }, ms);
+      promise.then(resolve, reject);
+    });
   }
 
 var hash;
@@ -109,7 +111,7 @@ fetch('/heartbeat?hash=').then(function (d) {return d.text()}).then(function (t)
     heartbeat();
 }).catch(function (e) {
     window.location = '/';
-})
+});
 
 
 function heartbeat() {
@@ -117,27 +119,13 @@ function heartbeat() {
     Promise.race([
         fetch('/heartbeat?hash=' + hash + "&_ts=" + timeStampInMs),
         new Promise(function(resolve, reject) {
-            setTimeout(function() {return reject(new Error('request timeout'))}, 10000)
-        })
-    ]).then(function (d) {return d.text()}).then(function (t) {
+            setTimeout(function() {return reject(new Error('request timeout'))}, 10000);
+        }),
+    ]).then(function (d) {
+        return d.text();
+    }).then(function (t) {
         window.location = '/';
     }).catch(function (e) {
-        setTimeout(heartbeat, 1000)
-    })
-}
-
-function processForm(evt) {
-    if (!selectedInp.value) {
-        alert('выберите время отработки!')
-        return false;
-    }
-    if (!groupInp.value) {
-        alert('введите номер группы!')
-        return false;
-    }
-    if (!studentIdInp.value) {
-        alert('введите номер студенческого!')
-        return false;
-    }
-    return true
+        setTimeout(heartbeat, 1000);
+    });
 }

@@ -10,7 +10,7 @@ def minimalist_xldate_as_datetime(xldate, datemode):
         + datetime.timedelta(days=xldate + 1462 * datemode)
         )
 
-FILENAME = 'c:\PYTHON\hvd-students\График отработок ЛР.XLSX'
+FILENAME = 'c:\PYTHON\hvd-students\График отработок ЛР для Саши.xlsx'
 
 def run():
     db = pymongo.MongoClient(S.mongo['url'])[S.mongo['db']]

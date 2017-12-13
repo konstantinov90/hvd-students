@@ -80,6 +80,9 @@ td, th {
 .active {
     background-color: rgba(148, 233, 98, 0.911);
 }
+.blocked {
+    background-color: rgba(165, 165, 165, 0.911);
+}
 
 /* The Modal (background) */
 .modal {

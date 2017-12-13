@@ -82,6 +82,7 @@ async def index(request):
         "days": days,
         "user": user,
         "months": months.MONTHS,
+        "epoch": datetime.datetime.utcfromtimestamp(0),
     }
 
 async def static(request):
@@ -151,7 +152,7 @@ async def error_middleware(request, handler):
         return resp
     except Exception as e:
         tb = ''.join(traceback.format_tb(e.__traceback__))
-        await db.logs.insert({
+        await db.log.insert({
             'level': 'error',
             'client_ip': request.remote,
             'url': str(request.rel_url),
@@ -171,7 +172,7 @@ async def access_logger(request, handler):
     user = request['user']
     db = request.app['db']
     if user:
-        await db.logs.insert({
+        await db.log.insert({
             'level': 'info',
             'user': user['_id'],
             'client_ip': request.remote,
@@ -212,6 +213,7 @@ async def user_data_middleware(request, handler):
     user_id = await auth.get_auth(request)
     if user_id:
         user = await db.users.find_one({'_id': int(user_id)})
+        # user['labs'] = { k: lab for k, lab in user['labs'].items() if lab.get('blocked_until', datetime.datetime.max) > datetime.datetime.now() }
     request['user'] = user if user_id else None
     
     return await handler(request)

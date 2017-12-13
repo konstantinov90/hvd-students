@@ -24,7 +24,7 @@ def run():
         user_id = int(ws.cell(i, 1).value)
         group = ws.cell(i, 2).value.strip()
         print(user_id, name, group)
-        db.users.insert({'_id': user_id, 'labs': {}, 'group': group, 'name': name})
+        db.users.insert({'_id': user_id, 'labs': {}, 'group': group, 'name': name, 'blocks': {}})
 
 
 if __name__ == '__main__':
