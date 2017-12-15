@@ -133,7 +133,7 @@ async def report(request):
 
     students = await db.users.find().to_list(None)
 
-    async for day in db.timetable.find():
+    async for day in db.timetable.find().sort([("day", 1)]):
         for period_name, period in day['periods'].items():
             per_name = '1-2 пары 09:20 - 12:45' if period_name == 'first' else '3-4 пары 13:45 - 17:10'
             groups = ', '.join(period['groups'])
@@ -194,7 +194,7 @@ async def access_logger(request, handler):
         await db.log.insert({
             'level': 'info',
             'user': user['_id'],
-            'client_ip': request.remote,
+            'client_ip': str(request.headers.get('X-Forwarded-For', request.remote)),
             'url': str(request.rel_url),
             'user_agent': request.headers['User-Agent'],
             'timestamp': datetime.datetime.now(),

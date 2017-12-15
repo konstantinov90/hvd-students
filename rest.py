@@ -22,7 +22,7 @@ async def sign_up(request):
     _id = int(data['id'])
     user = await db.users.find_one({'_id': _id})
     if not user:
-        return web.HTTPForbidden(text="ваш студенческий билет не зарегистрирован в системе")
+        return web.HTTPForbidden(text="вы не зарегистрированы в системе")
     if 'pwd' in user:
         return web.HTTPFound('/')
     pwd = data['password']
@@ -43,7 +43,7 @@ async def login(request, _pwd=None):
     _id = int(data["id"])
     user = await db.users.find_one({'_id': _id})
     if not user:
-        return web.HTTPForbidden(text="ваш студенческий билет не зарегистрирован в системе")
+        return web.HTTPForbidden(text="вы не зарегистрированы в системе")
     if 'pwd' not in user:
         return web.HTTPFound(f'/sign-up?id={_id}')
     if hashlib.md5(user['salt'] + pwd.encode()).hexdigest() == user['pwd']:
