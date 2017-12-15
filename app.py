@@ -8,12 +8,13 @@ from aiohttp import web
 import aiohttp_jinja2
 from aiohttp_auth import auth
 
+from hvd_calendar import get_workdays_delta
 import months
 import app_log
 log = app_log.get_logger()
 
 CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=13)
-BLOCK_UNTIL_TIMEDELTA = datetime.timedelta(days=2)
+
 
 async def process_response(self, request, response):
     """Called to perform any processing of the response required.
@@ -173,7 +174,7 @@ async def error_middleware(request, handler):
         tb = ''.join(traceback.format_tb(e.__traceback__))
         await db.log.insert({
             'level': 'error',
-            'client_ip': request.remote,
+            'client_ip': str(request.headers.get('X-Forwarder-For', request.remote)),
             'url': str(request.rel_url),
             'user_agent': request.headers['User-Agent'],
             'timestamp': datetime.datetime.now(),
@@ -292,7 +293,7 @@ def make_app(loop):
             await db.timetable.update_one({'_id': day['_id']}, {
                 '$set': {
                     'critical_time': day['day'] + CRITICAL_TIMEDELTA,
-                    'block_until': day['day'] + BLOCK_UNTIL_TIMEDELTA,
+                    'block_until': get_workdays_delta(day['day'], 2),
                 }   
             })
 

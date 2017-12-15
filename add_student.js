@@ -1,0 +1,1 @@
+db.getCollection('users').insert({_id: NumberInt(20161484), labs:{}, group: 'Э-07-14', name: 'Досумбетов Адилет Кылычбекович', blocks: {}})
