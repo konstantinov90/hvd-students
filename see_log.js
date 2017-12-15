@@ -1,0 +1,1 @@
+db.getCollection('log').find().sort({timestamp: -1})
