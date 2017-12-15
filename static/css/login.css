@@ -13,11 +13,9 @@ form {
     vertical-align: middle;
     margin: auto;
     display: flex;
-    flex: 1;
     flex-direction: column;
 }
 input {
-    flex: 1;
     width: auto;
     height: 30px;
 }
