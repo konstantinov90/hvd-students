@@ -247,6 +247,7 @@ def make_app(loop):
     app = web.Application(
         loop=loop,
         middlewares=[
+            web.normalize_path_middleware(),
             auth_middleware,
             user_data_middleware,
             access_logger,
@@ -256,16 +257,16 @@ def make_app(loop):
     )
     app.router.add_get('/', index)
     # app.router.add_get('/static/{filename}', static)
-    app.router.add_static('/static', 'static', show_index=False)
+    app.router.add_static('/static/', 'static', show_index=False)
 
-    app.router.add_post('/rest/send_password', rest.sign_up)
-    app.router.add_post('/rest/register', rest.register)
-    app.router.add_post('/rest/unregister', rest.unregister)
-    app.router.add_post('/rest/login', rest.login)
-    app.router.add_get('/login', login)
-    app.router.add_get('/sign-up', ask_for_password)
-    app.router.add_get('/heartbeat', heartbeat)
-    app.router.add_get('/get_report', report)
+    app.router.add_post('/rest/send_password/', rest.sign_up)
+    app.router.add_post('/rest/register/', rest.register)
+    app.router.add_post('/rest/unregister/', rest.unregister)
+    app.router.add_post('/rest/login/', rest.login)
+    app.router.add_get('/login/', login)
+    app.router.add_get('/sign-up/', ask_for_password)
+    app.router.add_get('/heartbeat/', heartbeat)
+    app.router.add_get('/get_report/', report)
 
     # app.router.add_get('/{name}', handle)
 

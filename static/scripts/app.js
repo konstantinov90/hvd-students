@@ -71,7 +71,7 @@ function sign(el, periodNum, url) {
 }
 
 function signUp(el, periodNum) {
-    sign(el, periodNum, '/rest/register');
+    sign(el, periodNum, '/rest/register/');
 }
 
 function signOut(el, periodNum) {
@@ -80,7 +80,7 @@ function signOut(el, periodNum) {
     var now = new Date();
     var msg = "Вы уверены?" + (now > criticalTime? "\nCледующая возможность записаться на отработку данной ЛР будет предоставлена Вам " + blockUntilTime + "!": "");
     if (confirm(msg)) {
-        sign(el, periodNum, '/rest/unregister');
+        sign(el, periodNum, '/rest/unregister/');
     }
 }
 
@@ -107,7 +107,7 @@ function timeout(ms, promise) {
   }
 
 var hash;
-fetch('/heartbeat?hash=').then(function (d) {return d.text()}).then(function (t) {
+fetch('/heartbeat/?hash=').then(function (d) {return d.text()}).then(function (t) {
     hash = t;
     heartbeat();
 }).catch(function (e) {
@@ -118,7 +118,7 @@ fetch('/heartbeat?hash=').then(function (d) {return d.text()}).then(function (t)
 function heartbeat() {
     var timeStampInMs = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
     Promise.race([
-        fetch('/heartbeat?hash=' + hash + "&_ts=" + timeStampInMs),
+        fetch('/heartbeat/?hash=' + hash + "&_ts=" + timeStampInMs),
         new Promise(function(resolve, reject) {
             setTimeout(function() {return reject(new Error('request timeout'))}, 10000);
         }),
