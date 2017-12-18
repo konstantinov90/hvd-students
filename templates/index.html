@@ -71,7 +71,9 @@
                                 {% set free_space = lab['quota'] - lab['students_registered'] %}
                                 
                                 {% set user_lab = user['labs'].get(lab_id) %}
-                                {% if lab_id in user['blocks'] and user['blocks'][lab_id] > day['day'] %}
+                                {% if now >= period['availible_until'] %}
+                                    {% set class_name = 'unavailible' %}
+                                {% elif lab_id in user['blocks'] and user['blocks'][lab_id] > day['day'] %}
                                     {% set class_name = 'blocked' %}
                                 {% elif lab_id in user['blocks'] and user['blocks'][lab_id] <= day['day'] and not user_period.occupied and free_space > 0 %}
                                     {% set class_name = 'selectable' %}
@@ -102,6 +104,8 @@
                                         <td class='btn' onclick='signOut(this, "{{ period_num }}")'>удалить запись</td>
                                     {% elif class_name == 'run-out' %}
                                         <td>вы записаны на {{ lab_date.strftime('%d ') + months[lab_date.month-1] }}</td>
+                                    {% elif class_name == 'unavailible' %}
+                                        <td>запись закрыта</td>
                                     {% elif class_name == 'blocked' %}
                                         <td>запись закрыта до</td>
                                         <td>{{ user['blocks'][lab_id].strftime('%d ') + months[user['blocks'][lab_id].month-1] }}</td>

@@ -14,7 +14,10 @@ import app_log
 log = app_log.get_logger()
 
 CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=13)
-
+AVAILIBLE_UNTIL_TIMEDELTA = {
+    'first': datetime.timedelta(days=-1, hours=9, minutes=20),
+    'second': datetime.timedelta(days=-1, hours=13, minutes=45),
+}
 
 async def process_response(self, request, response):
     """Called to perform any processing of the response required.
@@ -103,6 +106,7 @@ async def index(request):
         "user": user,
         "months": months.MONTHS,
         "epoch": datetime.datetime.utcfromtimestamp(0),
+        "now": datetime.datetime.now(),
     }
 
 async def static(request):
@@ -290,12 +294,13 @@ def make_app(loop):
         db = app['db']
         days = await db.timetable.find().to_list(None)
         for day in days:
-            await db.timetable.update_one({'_id': day['_id']}, {
-                '$set': {
-                    'critical_time': day['day'] + CRITICAL_TIMEDELTA,
-                    'block_until': get_workdays_delta(day['day'], 2),
-                }   
-            })
+            cmd = {
+                'critical_time': day['day'] + CRITICAL_TIMEDELTA,
+                'block_until': get_workdays_delta(day['day'], 2),
+            }
+            for period in day.get('periods',()):
+                cmd[f'periods.{period}.availible_until'] = day['day'] + AVAILIBLE_UNTIL_TIMEDELTA[period]
+            await db.timetable.update_one({'_id': day['_id']}, {'$set': cmd})
 
     async def shutdown(app):
         app['running'] = False

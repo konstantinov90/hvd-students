@@ -66,6 +66,9 @@ async def register(request):
         
     if lab['students_registered'] >= lab['quota']:
         return web.HTTPNotFound(text=f'в выбранной отработке не осталось свободных мест')
+    
+    if datetime.datetime.now() >= period['availible_until']:
+        return web.HTTPNotFound(text='регистрация закрыта')
 
     await asyncio.gather(
         db.timetable.update_one({'_id': ObjectId(data['day-id'])}, {'$inc': {
