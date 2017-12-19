@@ -15,8 +15,8 @@ log = app_log.get_logger()
 
 CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=13)
 AVAILIBLE_UNTIL_TIMEDELTA = {
-    'first': datetime.timedelta(days=-1, hours=9, minutes=20),
-    'second': datetime.timedelta(days=-1, hours=13, minutes=45),
+    'first': datetime.timedelta(hours=14),
+    'second': datetime.timedelta(hours=14),
 }
 
 async def process_response(self, request, response):
@@ -300,7 +300,8 @@ def make_app(loop):
                 'block_until': get_workdays_delta(day['day'], 2),
             }
             for period in day.get('periods',()):
-                cmd[f'periods.{period}.availible_until'] = day['day'] + AVAILIBLE_UNTIL_TIMEDELTA[period]
+                shift = 0 if day['day'] == datetime.datetime(2017,12,20) else -1
+                cmd[f'periods.{period}.availible_until'] = get_workdays_delta(day['day'], shift) + AVAILIBLE_UNTIL_TIMEDELTA[period]
             await db.timetable.update_one({'_id': day['_id']}, {'$set': cmd})
 
     async def shutdown(app):

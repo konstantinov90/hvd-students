@@ -20,11 +20,18 @@ def is_workday(tdate):
         return tdate.isoweekday() not in (6,  7)
 
 def get_workdays_delta(tdate, n):
-    while n > 0:
-        tdate = tdate + ONE_DAY
-        if not is_workday(tdate):
-            continue
-        n -=1
+    if n > 0:
+        while n > 0:
+            tdate = tdate + ONE_DAY
+            if not is_workday(tdate):
+                continue
+            n -=1
+    else:
+        while n < 0:
+            tdate = tdate - ONE_DAY
+            if not is_workday(tdate):
+                continue
+            n +=1
     return tdate
 
 def load_exception():

@@ -85,6 +85,8 @@
                                 {% if user_lab %}
                                     {% if user_lab['day'] == day['day'] and user_lab['period'] == period_num %}
                                         {% set class_name = 'selected' %}
+                                    {% elif now >= period['availible_until'] %}
+                                        {% set class_name = 'unavailible' %}
                                     {% elif (lab_id in user['blocks'] and user['blocks'][lab_id] <= day['day']) or not (user_lab['day'] == day['day'] and user_lab['period'] == period_num) %}
                                         {% set class_name = 'run-out' %}
                                         {% set lab_date = user_lab['day'] %}
@@ -103,7 +105,7 @@
                                         <td>вы записаны</td>
                                         <td class='btn' onclick='signOut(this, "{{ period_num }}")'>удалить запись</td>
                                     {% elif class_name == 'run-out' %}
-                                        <td>вы записаны на {{ lab_date.strftime('%d ') + months[lab_date.month-1] }}</td>
+                                        <td>{{ lab['quota'] - lab['students_registered'] }} (<span style="font-size: 11px">вы записаны на {{ lab_date.strftime('%d ') + months[lab_date.month-1] }}</span>)</td>
                                     {% elif class_name == 'unavailible' %}
                                         <td>запись закрыта</td>
                                     {% elif class_name == 'blocked' %}
