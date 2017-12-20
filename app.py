@@ -11,6 +11,7 @@ from aiohttp_auth import auth
 from hvd_calendar import get_workdays_delta
 import months
 import app_log
+import pymongo
 log = app_log.get_logger()
 
 CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=13)
@@ -304,9 +305,56 @@ def make_app(loop):
                 cmd[f'periods.{period}.availible_until'] = get_workdays_delta(day['day'], shift) + AVAILIBLE_UNTIL_TIMEDELTA[period]
             await db.timetable.update_one({'_id': day['_id']}, {'$set': cmd})
 
+    def func(period):
+        db = pymongo.MongoClient(S.mongo['url'])[S.mongo['db']]
+        db.authenticate(S.mongo['username'], S.mongo['pwd'])
+        for user in db.users.find():
+            for lab_id, lab in user['labs'].items():
+                if lab['period'] == period and datetime.datetime.now() > lab['day']:
+                    print(user['_id'], user['name'])
+                    # print({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": datetime.datetime(2018,1,1)}})
+                    db.users.update_one({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": datetime.datetime(2018,1,1)}})
+
+                    resp = {
+                        'user': user['_id'],
+                        'level': 'info',
+                        'event': 'marked as complete',
+                        'entity': {
+                            'lab': lab_id,
+                            'day': lab['day'],
+                            'period': period,
+                        },
+                        'timestamp': datetime.datetime.now(),
+                    }
+
+                    db.log.insert(resp)
+                    msg = f'''
+                        user = {resp['user']}
+                        event = {resp['event']}
+                        day = {resp['entity']['day']}
+                        period = {resp['entity']['period']}
+                        lab = {resp['entity']['lab']}'''
+                    log.info(msg)
+
+    async def students_labs_analyzer(app):
+        db = app['db']
+        while app['running']:
+            daytime = datetime.datetime.now()
+            day = datetime.datetime.combine(daytime.date(), datetime.datetime.min.time())
+            if day + datetime.timedelta(hours=9) < datetime.datetime.now() < day + datetime.timedelta(hours=9, minutes=20):
+                delay = ((day + datetime.timedelta(hours=9, minutes=20)) - datetime.datetime.now()).seconds
+                loop.call_later(delay, func, 'first')
+            elif day + datetime.timedelta(hours=13, minutes=25) < datetime.datetime.now() < day + datetime.timedelta(hours=13, minutes=45):
+                delay = ((day + datetime.timedelta(hours=13, minutes=45)) - datetime.datetime.now()).seconds
+                loop.call_later(delay, func, 'second')
+            await asyncio.sleep(600)
+
     async def shutdown(app):
         app['running'] = False
         await app['hash_analyzer']
+        app['students_lab_analyzer'].cancel()
+
+    app['students_lab_analyzer'] = asyncio.ensure_future(students_labs_analyzer(app))
 
     app.on_startup.append(db_auth)
     app.on_startup.append(run_db_hash_analyzer)
