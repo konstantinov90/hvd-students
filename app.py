@@ -97,7 +97,7 @@ async def index(request):
     for day in days:
         for key, period in list(day['periods'].items()):
             for lab in list(period['labs']):
-                if user['group'] not in lab['groups']:# and user['name'] != 'super':
+                if user['group'] not in lab['groups'] and user['name'] != 'super':
                     day['periods'][key]['labs'].remove(lab)
             if not day['periods'][key]['labs']:
                 del day['periods'][key]
@@ -134,7 +134,21 @@ async def report(request):
     filename = 'сводка.xlsx'
 
     wb = xlsxwriter.Workbook(filename, {'default_date_format': 'dd-mm-yyyy'})
+    format = wb.add_format()
+    format.set_text_wrap()
+    format.set_align('center')
+    format.set_align('vcenter')
+    format.set_border()
+
+    border = wb.add_format()
+    border.set_border()
+
     ws = wb.add_worksheet('сводка')
+    ws.set_column(0, 0, 12)
+    ws.set_column(1, 2, 22)
+    ws.set_column(2, 4, 6)
+    ws.set_column(4, 5, 7)
+    ws.set_column(5, 6, 40)
 
     ws.write_row(0, 0, ('дата', 'пары', 'номер л/р', 'всего мест', 'записавшихся', 'ФИО', 'группа'))
 
