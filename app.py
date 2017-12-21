@@ -96,7 +96,10 @@ async def index(request):
     days = await request.app['db'].timetable.find().sort([('day', 1)]).to_list(None)
     for day in days:
         for key, period in list(day['periods'].items()):
-            if user['group'] not in period['groups'] and user['name'] != 'super':
+            for lab in list(period['labs']):
+                if user['group'] not in lab['groups']:# and user['name'] != 'super':
+                    day['periods'][key]['labs'].remove(lab)
+            if not day['periods'][key]['labs']:
                 del day['periods'][key]
     days = [day for day in days if day['periods']]
     for day in days:
@@ -133,24 +136,30 @@ async def report(request):
     wb = xlsxwriter.Workbook(filename, {'default_date_format': 'dd-mm-yyyy'})
     ws = wb.add_worksheet('сводка')
 
-    ws.write_row(0, 0, ('дата', 'пары', 'группы', 'номер л/р', 'всего мест', 'записавшихся', 'ФИО', 'группа'))
+    ws.write_row(0, 0, ('дата', 'пары', 'номер л/р', 'всего мест', 'записавшихся', 'ФИО', 'группа'))
 
     i = 1
 
     students = await db.users.find().to_list(None)
+    student_names = {student['_id']: student for student in students}
+    complete = await db.log.find({'event': 'marked as complete'}).to_list(None)
 
     async for day in db.timetable.find().sort([("day", 1)]):
         for period_name, period in day['periods'].items():
             per_name = '1-2 пары 09:20 - 12:45' if period_name == 'first' else '3-4 пары 13:45 - 17:10'
-            groups = ', '.join(period['groups'])
-            ws.write_row(i,0, (day['day'], per_name, groups,))
+            # groups = ', '.join(period['groups'])
+            ws.write_row(i,0, (day['day'], per_name,))
             i += 1
             for lab in period['labs']:
-                ws.write_row(i, 3, (lab['_id'], lab['quota'], lab['students_registered']))
+                ws.write_row(i, 2, (lab['_id'], lab['quota'], lab['students_registered'], ', '.join(lab['groups'])))
                 i += 1
                 for student in students:
                     if student['labs'].get(lab['_id']) == {'day': day['day'], 'period': period_name}:
-                        ws.write_row(i, 6, (student['name'], student['group'],))
+                        ws.write_row(i, 5, (student['name'], student['group'],))
+                        i += 1
+                for event in complete:
+                    if event['entity'] == {'lab': lab['_id'], 'day': day['day'], 'period': period_name}:
+                        ws.write_row(i, 5, (student_names[event['user']]['name'], student_names[event['user']]['group']))
                         i += 1
     wb.close()
 
@@ -337,7 +346,6 @@ def make_app(loop):
                     log.info(msg)
 
     async def students_labs_analyzer(app):
-        db = app['db']
         while app['running']:
             daytime = datetime.datetime.now()
             day = datetime.datetime.combine(daytime.date(), datetime.datetime.min.time())

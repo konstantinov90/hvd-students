@@ -112,11 +112,11 @@ async def prepare_event(request):
     if not period:
         raise web.HTTPNotFound(text='выбран несуществующий период')
 
-    if user['group'] not in period['groups']:
-        raise web.HTTPNotFound(text='выбранный день не доступен вашей группе')
+    # if user['group'] not in period['groups']:
+    #     raise web.HTTPNotFound(text='выбранный день не доступен вашей группе')
 
     try:
-        [(idx, lab,)] = [(i, lab) for i, lab in enumerate(period['labs']) if lab['_id'] == data['lab-id']]
+        [(idx, lab,)] = [(i, lab) for i, lab in enumerate(period['labs']) if lab['_id'] == data['lab-id'] and user['group'] in lab['groups']]
     except Exception:
         raise web.HTTPNotFound(text=f'в выбранном дне не запланированы отработки {data["lab-id"]} л/р')
     return data, int(user_id), user, day, period, idx, lab
