@@ -172,11 +172,11 @@ async def report(request):
                 i += 1
                 for student in students:
                     if student['labs'].get(lab['_id']) == {'day': day['day'], 'period': period_name}:
-                        ws.write_row(i, 5, (student['name'], student['group'],), border)
+                        ws.write_row(i, 5, (student['group'], student['name'],), border)
                         i += 1
                 for event in complete:
                     if event['entity'] == {'lab': lab['_id'], 'day': day['day'], 'period': period_name}:
-                        ws.write_row(i, 5, (student_names[event['user']]['name'], student_names[event['user']]['group']), border)
+                        ws.write_row(i, 5, (student_names[event['user']]['group'], student_names[event['user']]['name']), border)
                         i += 1
     wb.close()
 
