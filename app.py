@@ -142,6 +142,9 @@ async def report(request):
 
     border = wb.add_format()
     border.set_border()
+    day_fmt = wb.add_format()
+    day_fmt.set_border()
+    day_fmt.set_num_format('d mmm yyyy')
 
     ws = wb.add_worksheet('сводка')
     ws.set_column(0, 0, 12)
@@ -150,7 +153,7 @@ async def report(request):
     ws.set_column(4, 5, 7)
     ws.set_column(5, 6, 40)
 
-    ws.write_row(0, 0, ('дата', 'пары', 'номер л/р', 'всего мест', 'записавшихся', 'ФИО', 'группа'))
+    ws.write_row(0, 0, ('дата', 'пары', 'номер л/р', 'всего мест', 'записавшихся', 'ФИО', 'группа'), format)
 
     i = 1
 
@@ -162,18 +165,18 @@ async def report(request):
         for period_name, period in day['periods'].items():
             per_name = '1-2 пары 09:20 - 12:45' if period_name == 'first' else '3-4 пары 13:45 - 17:10'
             # groups = ', '.join(period['groups'])
-            ws.write_row(i,0, (day['day'], per_name,))
+            ws.write_row(i,0, (day['day'], per_name,), day_fmt)
             i += 1
             for lab in period['labs']:
-                ws.write_row(i, 2, (lab['_id'], lab['quota'], lab['students_registered'], ', '.join(lab['groups'])))
+                ws.write_row(i, 2, (lab['_id'], lab['quota'], lab['students_registered'], ', '.join(lab['groups'])), border)
                 i += 1
                 for student in students:
                     if student['labs'].get(lab['_id']) == {'day': day['day'], 'period': period_name}:
-                        ws.write_row(i, 5, (student['name'], student['group'],))
+                        ws.write_row(i, 5, (student['name'], student['group'],), border)
                         i += 1
                 for event in complete:
                     if event['entity'] == {'lab': lab['_id'], 'day': day['day'], 'period': period_name}:
-                        ws.write_row(i, 5, (student_names[event['user']]['name'], student_names[event['user']]['group']))
+                        ws.write_row(i, 5, (student_names[event['user']]['name'], student_names[event['user']]['group']), border)
                         i += 1
     wb.close()
 
