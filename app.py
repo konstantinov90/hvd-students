@@ -14,9 +14,9 @@ import app_log
 import pymongo
 log = app_log.get_logger()
 
-CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=13)
+CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=18)
 AVAILIBLE_UNTIL_TIMEDELTA = {
-    'first': datetime.timedelta(hours=14),
+    'first': datetime.timedelta(hours=9, minutes=20),
     'second': datetime.timedelta(hours=14),
 }
 
@@ -324,10 +324,12 @@ def make_app(loop):
         for day in days:
             cmd = {
                 'critical_time': day['day'] + CRITICAL_TIMEDELTA,
-                'block_until': get_workdays_delta(day['day'], 2),
+                # 'block_until': get_workdays_delta(day['day'], 2),
+                'block_until': day['day'] + datetime.timedelta(4)
             }
             for period in day.get('periods',()):
-                shift = 0 if day['day'] == datetime.datetime(2017,12,20) else -1
+                # shift = 0 if day['day'] == datetime.datetime(2017,12,20) else -1
+                shift = 0
                 cmd[f'periods.{period}.availible_until'] = get_workdays_delta(day['day'], shift) + AVAILIBLE_UNTIL_TIMEDELTA[period]
             await db.timetable.update_one({'_id': day['_id']}, {'$set': cmd})
 
@@ -339,7 +341,8 @@ def make_app(loop):
                 if lab['period'] == period and datetime.datetime.now() > lab['day']:
                     print(user['_id'], user['name'])
                     # print({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": datetime.datetime(2018,1,1)}})
-                    db.users.update_one({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": datetime.datetime(2018,1,1)}})
+                    block_until = lab['day'] + datetime.timedelta(4)
+                    db.users.update_one({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": block_until}})
 
                     resp = {
                         'user': user['_id'],
