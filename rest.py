@@ -19,6 +19,8 @@ async def sign_up(request):
     data = await request.post()
     if data['password'] != data['password2']:
         return web.HTTPFound(f'/sign-up?id={data["id"]}&msg=unequal-pwds')
+    if not data['password']:
+        return web.HTTPFound(f'/sign-up?id={data["id"]}')
     _id = int(data['id'])
     user = await db.users.find_one({'_id': _id})
     if not user:
