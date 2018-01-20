@@ -1,4 +1,5 @@
 import os
+from os import path
 import asyncio
 import datetime
 import hashlib
@@ -12,6 +13,7 @@ from hvd_calendar import get_workdays_delta
 import months
 import app_log
 import pymongo
+import settings as S
 log = app_log.get_logger()
 
 CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=18)
@@ -113,10 +115,10 @@ async def index(request):
         "now": datetime.datetime.now(),
     }
 
-async def static(request):
-    filename = request.match_info.get('filename')
-    if filename:
-        return web.FileResponse(f'static/{filename}')
+# async def static(request):
+#     filename = request.match_info.get('filename')
+#     if filename:
+#         return web.FileResponse(path.join(S.PATH, f'static/{filename}'))
 
 async def heartbeat(request):
     while request.query['hash'] == request.app['container']['hash']:
@@ -131,7 +133,7 @@ async def heartbeat(request):
 async def report(request):
     db = request.app['db']
 
-    filename = 'сводка.xlsx'
+    filename = path.join(S.PATH, 'сводка.xlsx')
 
     wb = xlsxwriter.Workbook(filename, {'default_date_format': 'dd-mm-yyyy'})
     format = wb.add_format()
@@ -284,7 +286,7 @@ def make_app(loop):
     )
     app.router.add_get('/', index)
     # app.router.add_get('/static/{filename}', static)
-    app.router.add_static('/static/', 'static', show_index=False)
+    app.router.add_static('/static/', path.join(S.PATH, 'static'), show_index=False)
 
     app.router.add_post('/rest/send_password/', rest.sign_up)
     app.router.add_post('/rest/register/', rest.register)
@@ -298,7 +300,7 @@ def make_app(loop):
     # app.router.add_get('/{name}', handle)
 
     aiohttp_jinja2.setup(app,
-        loader=jinja2.FileSystemLoader('templates')
+        loader=jinja2.FileSystemLoader(path.join(S.PATH, 'templates'))
     )
 
     db = motor.AsyncIOMotorClient(S.mongo['url'])[S.mongo['db']]
