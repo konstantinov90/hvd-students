@@ -273,7 +273,6 @@ async def user_data_middleware(request, handler):
 
 
 def make_app(loop):
-    log.info('starting')
     app = web.Application(
         loop=loop,
         middlewares=[
