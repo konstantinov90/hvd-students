@@ -121,14 +121,16 @@ async def index(request):
 #         return web.FileResponse(path.join(S.PATH, f'static/{filename}'))
 
 async def heartbeat(request):
-    while request.query['hash'] == request.app['container']['hash']:
+    for _ in range(100):
+        if request.query['hash'] != request.app['container']['hash']:
+            return web.Response(text=request.app['container']['hash'], headers=MultiDict({
+                'Cache-Control': 'No-Cache'
+            }))
         try:
             await asyncio.sleep(0.1)
         except asyncio.CancelledError:
             pass
-    return web.Response(text=request.app['container']['hash'], headers=MultiDict({
-        'Cache-Control': 'No-Cache'
-    }))
+    return web.Response(status=304)
 
 async def report(request):
     db = request.app['db']
