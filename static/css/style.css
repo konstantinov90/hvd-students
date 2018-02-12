@@ -17,19 +17,20 @@ form {
 .day {
     border: rgb(31, 124, 160) solid 2px;
     display: flex;
-    width: 962px;
+    /* width: 962px; */
+    width: 662px;
     margin: auto;
     flex-grow: 1;
 }
 .periods {
     /* border: black solid 2px; */
     display: flex;
-    /* flex-grow: 3; */
+    flex-grow: 3;
     width: 744px;
 }
 .period {
     /* height: 100px; */
-    width: 380px;
+    width: 100%;
     border: gray solid 1px;
     /* flex-grow: 5; */
     /* background-color: rgb(223, 221, 221); */
@@ -144,7 +145,7 @@ td, th {
     box-shadow: inset 5px 3px 13px 0px rgba(50, 50, 50, 0.64);
 }
 .footer {
-    margin-top: 80px;
+    margin: 80px 20px 0 0;
     /* border: black solid 2px; */
     float: right;
     /* line-height: 10px; */

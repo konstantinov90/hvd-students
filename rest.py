@@ -45,9 +45,9 @@ async def login(request, _pwd=None):
     _id = int(data["id"])
     user = await db.users.find_one({'_id': _id})
     if not user:
-        return web.HTTPForbidden(text="вы не зарегистрированы в системе")
+        return web.HTTPForbidden(text="Вы не зарегистрироВаны в системе.")
     if not user.get('allowed'):
-        return web.HTTPForbidden(text="Вы выполнили все лабораторные работы и запись вам не требуется")
+        return web.HTTPForbidden(text="Вы выполнили все лабораторные работы и запись вам не требуется.")
     if 'pwd' not in user:
         return web.HTTPFound(f'/sign-up?id={_id}')
     if hashlib.md5(user['salt'] + pwd.encode()).hexdigest() == user['pwd']:

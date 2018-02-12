@@ -16,10 +16,11 @@ import pymongo
 import settings as S
 log = app_log.get_logger()
 
-CRITICAL_TIMEDELTA = datetime.timedelta(days=-1, hours=18)
+CRITICAL_TIMEDELTA = datetime.timedelta(hours=12)
 AVAILIBLE_UNTIL_TIMEDELTA = {
     'first': datetime.timedelta(hours=9, minutes=20),
     'second': datetime.timedelta(hours=14),
+    'third': datetime.timedelta(hours=12),
 }
 
 async def process_response(self, request, response):
@@ -329,7 +330,7 @@ def make_app(loop):
             cmd = {
                 'critical_time': day['day'] + CRITICAL_TIMEDELTA,
                 # 'block_until': get_workdays_delta(day['day'], 2),
-                'block_until': day['day'] + datetime.timedelta(4)
+                'block_until': day['day'] + datetime.timedelta(hours=21)
             }
             for period in day.get('periods',()):
                 # shift = 0 if day['day'] == datetime.datetime(2017,12,20) else -1
@@ -379,6 +380,9 @@ def make_app(loop):
             elif day + datetime.timedelta(hours=13, minutes=25) < datetime.datetime.now() < day + datetime.timedelta(hours=13, minutes=45):
                 delay = ((day + datetime.timedelta(hours=13, minutes=45)) - datetime.datetime.now()).seconds
                 loop.call_later(delay, func, 'second')
+            elif day + datetime.timedelta(hours=16, minutes=55) < datetime.datetime.now() < day + datetime.timedelta(hours=17, minutes=15):
+                delay = ((day + datetime.timedelta(hours=17, minutes=15)) - datetime.datetime.now()).seconds
+                loop.call_later(delay, func, 'third')
             await asyncio.sleep(600)
 
     async def shutdown(app):

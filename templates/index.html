@@ -47,9 +47,9 @@
                 <h2>{{ day['day'].strftime('%d ') + months[day['day'].month-1] + day['day'].strftime(' %Y') }}</h2>
             </div>
             <div class="periods">
-                {% for period_num in 'first', 'second' %}
+                {% for period_num in 'third', %}
                     {% set period = day['periods'].get(period_num) %}
-                    {% set label = '09:20 – 12:45' if period_num == 'first' else '13:45 – 17:10' %}
+                    {% set label = '09:20 – 12:45' if period_num == 'first' else '13:45 – 17:10' if period_num == 'second' else '17:15' %}
                     <div class="period {{ period_num }}">
                         <h4>{{ label }}</h4>
                         {% if period %}
