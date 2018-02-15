@@ -346,7 +346,7 @@ def make_app(loop):
                 if lab['period'] == period and datetime.datetime.now() > lab['day']:
                     print(user['_id'], user['name'])
                     # print({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": datetime.datetime(2018,1,1)}})
-                    block_until = lab['day'] + datetime.timedelta(4)
+                    block_until = lab['day'] + datetime.timedelta(hours=21)
                     db.users.update_one({"_id": user['_id']}, {"$unset": {f"labs.{lab_id}": 1}, "$set": {f"blocks.{lab_id}": block_until}})
 
                     resp = {
